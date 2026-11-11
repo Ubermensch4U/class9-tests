@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Class 9 Physics – Motion Test (Prototype)</title>
+<style>
+:root{--bg:#f4f7fc;--grid:#dfe7f5;--card:#fff;--ink:#14213d;--mut:#5a6785;--pri:#2457c5;--sel:#e6eefc;--ok:#157347;--bad:#b3261e;--warn:#8a5a00;--wbg:#fff3d6;--line:#d5deee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1626;--grid:#18233b;--card:#17213a;--ink:#e8eefc;--mut:#9fb0d3;--pri:#7ea6ff;--sel:#22305a;--ok:#5fd193;--bad:#ff8d85;--warn:#ffd27a;--wbg:#3a2f12;--line:#2b3a5e}}
+:root[data-theme="dark"]{--bg:#0f1626;--grid:#18233b;--card:#17213a;--ink:#e8eefc;--mut:#9fb0d3;--pri:#7ea6ff;--sel:#22305a;--ok:#5fd193;--bad:#ff8d85;--warn:#ffd27a;--wbg:#3a2f12;--line:#2b3a5e}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;color:var(--ink);font:16px/1.5 "Trebuchet MS",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:560px;margin:0 auto;padding:14px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:6px 0 8px;line-height:1.35}
+.m{color:var(--mut);font-size:14px}
+label{display:block;font-size:14px;color:var(--mut);margin:12px 0 4px}
+select,input{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+input[type=checkbox]{width:auto;margin-right:8px}
+button{font:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+.b{width:100%;padding:13px;border:0;border-radius:12px;background:var(--pri);color:#fff;font-weight:700;margin-top:12px}
+:root[data-theme="dark"] .b{color:#0f1626}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .b{color:#0f1626}}
+.g{background:transparent;border:1px solid var(--pri)}.b.g{color:var(--pri)!important}a.b{display:block;text-align:center;text-decoration:none}
+.o{display:block;width:100%;text-align:left;padding:12px;margin:8px 0;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.o.s{border-color:var(--pri);background:var(--sel);font-weight:700}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--pri)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:var(--sel);color:var(--pri)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fr{display:flex;align-items:center;gap:10px}.fr input{text-align:center}.fr b{font-size:28px}
+.warn{background:var(--wbg);color:var(--warn);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:14px}
+.err{color:var(--bad);font-size:14px;min-height:20px;margin-top:8px}
+.ok{color:var(--ok)}.no{color:var(--bad)}
+.big{font-size:40px;font-weight:700;line-height:1}
+.q{padding:10px 0;border-top:1px solid var(--line)}
+@media print{.np{display:none}body{background:#fff;color:#000}.c{border:0}}
+</style></head><body>
+<div class="w" id="a"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const API='https://script.google.com/macros/s/AKfycbznUYGErlj76kmat9SzCRAIApst311_CF1yN58_6jUBFkG_T8-KF-I7SN2wN8oppi872w/exec',SECRET='blue-tiger-seven-4821',TEST='T001';
+let ROSTER={};
+async function post(o){try{const r=await fetch(API,{method:'POST',body:JSON.stringify({...o,secret:SECRET})});return await r.json()}catch(e){return{ok:false,error:'network'}}}
+const $=id=>document.getElementById(id),A=$('a');
+let S={lock:{}},Q=[];
+const R=n=>Math.floor(Math.random()*n),pick=a=>a[R(a.length)];
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const red=(n,d)=>{const g=gcd(n,d);return[n/g,d/g]};
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const mm=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const norm=s=>s.toLowerCase().replace(/[^a-z]/g,'');
+function lev(a,b){const m=[...Array(a.length+1)].map((_,i)=>[i,...Array(b.length).fill(0)]);for(let j=1;j<=b.length;j++)m[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]==b[j-1]?0:1));return m[a.length][b.length]}
+const mc=(topic,skill,kind,sec,q,o,c,why)=>{const s=shuf(o.map((t,i)=>[t,i==c]));return{t:'mc',topic,skill,kind,sec,q,o:s.map(x=>x[0]),a:s.findIndex(x=>x[1]),why}};
+const fr=(topic,skill,sec,q,a,why)=>({t:'fr',topic,skill,kind:'Calculation',sec,q,a,why});
+const ok=(q,v)=>v!=null&&(q.t=='mc'?v==q.a:v[1]>0&&v[0]==q.a[0]&&v[1]==q.a[1]);
+
+function build(){
+const p=()=>[pick([1,2,3]),pick([2,3,4,5]),pick([1,2,3]),pick([2,3,4,5])];
+const d=pick([6,9,12]),[a,b]=pick([[3,2],[3,4],[2,3],[1,2]]),v=pick([36,54,72,90]),n=pick([2,3,4,5,6]),[s,t]=pick([[1,2],[3,4],[2,3],[3,2]]);
+const [x1,y1,z1,w1]=p(),[x2,y2,z2,w2]=p(),[x3,y3,z3,w3]=p();
+return[
+mc('Speed',null,'Concept',75,'Which formula gives speed?',['distance ÷ time','distance × time','time ÷ distance','distance + time'],0,'Speed = distance ÷ time.'),
+mc('Velocity & Graphs',null,'Concept',75,'Which quantity needs a direction to be complete?',['Speed','Velocity','Distance','Time'],1,'Velocity is speed in a given direction.'),
+mc('Velocity & Graphs',null,'Concept',75,'On a distance-time graph, a straight line parallel to the time axis shows an object that is…',['moving fast','speeding up','at rest','moving backwards'],2,'Distance is not changing, so the object is at rest.'),
+mc('Velocity & Graphs',null,'Concept',75,'An object has uniform acceleration. Its velocity…',['stays the same','changes by equal amounts in equal times','is always zero','changes randomly'],1,'Uniform acceleration means equal change in velocity in equal time.'),
+mc('Speed','Fraction division','Method',90,`A bus covers ${d} km in ${a}/${b} hour. What is the correct first step to find its speed?`,[`Multiply ${d} by ${b}/${a}`,`Multiply ${d} by ${a}/${b}`,`Add ${d} and ${a}/${b}`,`Subtract ${a}/${b} from ${d}`],0,`Speed = ${d} ÷ ${a}/${b}. To divide by a fraction, flip it and multiply.`),
+mc('Distance & Time','Unit conversion','Method',90,`Convert ${v} km/h to m/s. Which step is correct?`,['Multiply by 5/18','Multiply by 18/5','Multiply by 1000','Divide by 60'],0,'1 km/h = 1000 m ÷ 3600 s = 5/18 m/s.'),
+mc('Speed','Fraction division','Method',90,`Rahul solved ${x1}/${y1} ÷ ${z1}/${w1} as ${x1}/${y1} × ${z1}/${w1}. What is his mistake?`,['He did not flip the second fraction','He should have added','He should have flipped the first fraction','There is no mistake'],0,'When dividing, flip the second fraction, then multiply.'),
+fr('Speed','Fraction division',60,`A walker covers ${x2}/${y2} km in ${z2}/${w2} hour. Find the speed in km/h (simplest fraction).`,red(x2*w2,y2*z2),`(${x2}/${y2}) ÷ (${z2}/${w2}) = (${x2}/${y2}) × (${w2}/${z2}).`),
+fr('Distance & Time','Fraction multiplication',60,`A train runs at ${x3}/${y3} km per minute for ${z3}/${w3} minute. Find the distance in km (simplest fraction).`,red(x3*z3,y3*w3),`Distance = speed × time = (${x3}/${y3}) × (${z3}/${w3}).`),
+fr('Distance & Time','Fraction division',60,`A cyclist must cover ${n} km at ${s}/${t} km/h. Find the time in hours (simplest fraction).`,red(n*t,s),`Time = ${n} ÷ ${s}/${t} = ${n} × ${t}/${s}.`)
+]}
+
+function home(){
+const cl=S.cls||Object.keys(ROSTER)[0];
+A.innerHTML=`<div class="c"><h1>📘 Class 9 Physics</h1><div class="m">${S.testName} · 10 questions · 15 minutes</div>
+<label for="cs">Class / Section</label><select id="cs" onchange="S.cls=this.value;home()">${Object.keys(ROSTER).map(k=>`<option ${k==cl?'selected':''}>${k}</option>`).join('')}</select>
+<label for="nm">Your name</label><select id="nm">${ROSTER[cl].map(n=>`<option>${n}</option>`).join('')}</select>
+<label for="pn">Parent’s name</label><input id="pn" type="text" autocomplete="off">
+<label style="display:flex;align-items:center;color:var(--ink)"><input id="ck" type="checkbox">A parent or guardian is with me</label>
+<div class="err" id="er"></div>
+<button class="b" id="gb" onclick="go()">Start test</button></div>
+<div class="c m"><b>Before you start:</b> one question at a time, no going back, skipping is okay. Leaving this screen is recorded. This test helps find what to practise next.</div>`}
+
+async function go(){
+const cl=S.cls||Object.keys(ROSTER)[0],nm=$('nm').value,er=$('er');
+if(S.lock[nm]){er.textContent='This name is locked. Please ask your teacher.';return}
+if(!$('ck').checked){er.textContent='Please tick the box. A parent or guardian should be with you.';return}
+if(!$('pn').value.trim()){er.textContent='Please type your parent’s name.';return}
+$('gb').disabled=true;er.textContent='Checking…';
+const r=await post({action:'start',test:TEST,cls:cl,name:nm,parent:$('pn').value});
+$('gb').disabled=false;
+if(!r.ok){
+if(r.error=='parent name does not match'){S.tries=(S.tries||0)+1;if(S.tries>=3){S.lock[nm]=1;S.tries=0;er.textContent='Too many tries. Please ask your teacher.'}else er.textContent='That doesn’t match. Check the spelling and try again.'}
+else er.textContent=({'already started':'This name has already started the test. Please tell your teacher.','test is not live':'This test is not open right now.','network':'No connection. Check your internet and try again.'})[r.error]||'Something went wrong. Please tell your teacher.';
+return}
+S.tries=0;S.name=nm;S.cls=cl;Q=build();S.qi=0;S.ans=[];S.left=0;S.sel=null;S.warnMsg='';S.t0=Date.now();S.end=S.t0+9e5;S.qend=S.t0+Q[0].sec*1e3;S.screen='test';test()}
+
+function test(){
+const q=Q[S.qi];
+A.innerHTML=`<div class="c"><div class="row m"><span>Question ${S.qi+1} of 10 <span class="tag">${q.kind}</span></span><b id="tt">${mm(Math.max(0,Math.ceil((S.end-Date.now())/1e3)))}</b></div>
+<div class="bar" style="margin:10px 0"><i id="qb" style="width:${Math.max(0,(S.end-Date.now())/9e3)}%"></i></div>
+<div id="wm">${S.warnMsg?`<div class="warn">${S.warnMsg}</div>`:''}</div>
+<h2>${q.q}</h2>
+${q.t=='mc'?q.o.map((o,i)=>`<button class="o ${S.sel===i?'s':''}" onclick="S.sel=${i};test()">${o}</button>`).join(''):`<label>Your answer (simplest fraction)</label><div class="fr"><input id="n1" type="number" inputmode="numeric" placeholder="top"><b>/</b><input id="n2" type="number" inputmode="numeric" placeholder="bottom"></div>`}
+
+<button class="b" onclick="next()">${S.qi==9?'Submit test':'Next'}</button></div>`}
+
+function next(end){
+const q=Q[S.qi];let v=null;
+if(q.t=='mc')v=S.sel;else{const n=parseInt(($('n1')||{}).value),d=parseInt(($('n2')||{}).value);if(n>=0&&d>0)v=[n,d]}
+S.ans[S.qi]=v;S.sel=null;
+if(S.qi==9||end)return finish();
+S.qi++;S.qend=Date.now()+Q[S.qi].sec*1e3;test()}
+
+setInterval(()=>{
+if(S.screen!='test')return;
+const now=Date.now(),tl=Math.max(0,Math.ceil((S.end-now)/1e3)),ql=Math.max(0,Math.ceil((S.qend-now)/1e3));
+$('tt').textContent=mm(tl);$('qb').style.width=(tl/900*100)+'%';
+if(tl<=0)next(true)},250);
+
+document.addEventListener('visibilitychange',()=>{
+if(S.screen!='test')return;
+if(document.hidden)S.left++;
+else{S.warnMsg=S.left==1?'You left the test screen. This is recorded. Please stay on this page.':`You have left the screen ${S.left} times. This will show in the report.`;$('wm').innerHTML=`<div class="warn">${S.warnMsg}</div>`}});
+
+function finish(){
+S.screen='done';
+const used=Math.min(900,Math.round((Date.now()-S.t0)/1e3)),T={},K={};
+const att=Q.filter((q,i)=>S.ans[i]!=null).length,sc=Q.filter((q,i)=>ok(q,S.ans[i])).length;
+Q.forEach((q,i)=>{const g=ok(q,S.ans[i]);T[q.topic]=T[q.topic]||[0,0];T[q.topic][1]++;if(g)T[q.topic][0]++;if(q.skill){K[q.skill]=K[q.skill]||[0,0];K[q.skill][1]++;if(!g)K[q.skill][0]++}});
+const gap=Object.entries(K).filter(e=>e[1][0]>0).sort((x,y)=>y[1][0]/y[1][1]-x[1][0]/x[1][1])[0];
+const gt=gap?`${gap[0]} (${gap[1][0]} of ${gap[1][1]} questions missed)`:'No gap found this time 🎉';
+S.r={sc,att,gt,T,used};S.msg=`📘 Class 9 Physics: Motion Test\n${S.name} (Class ${S.cls})\nScore: ${sc}/10 · Attempted ${att} · Unattempted ${10-att}\n${Object.entries(T).map(([k,x])=>k+' '+x[0]+'/'+x[1]).join('\n')}\nRoot gap: ${gt}\nLeft screen: ${S.left} time(s)\n📄 Full report: (private PDF link goes here in the full version)`;
+A.innerHTML=`<div class="c"><h1>Report: ${S.name}, Class ${S.cls}</h1><div class="m">Motion Test · time used ${mm(used)}</div>
+<div class="row" style="margin:14px 0"><div><div class="big">${sc}/10</div><div class="m">Score</div></div><div><div class="big">${att}</div><div class="m">Attempted</div></div><div><div class="big">${10-att}</div><div class="m">Unattempted</div></div><div><div class="big">${S.left}</div><div class="m">Left screen</div></div></div>
+<h2>Marks by topic</h2>${Object.entries(T).map(([k,x])=>`<div class="row"><span>${k}</span><b>${x[0]}/${x[1]}</b></div><div class="bar" style="margin:4px 0 10px"><i style="width:${x[0]/x[1]*100}%"></i></div>`).join('')}
+<h2>Root gap</h2><div>${gt}</div><div class="m" style="margin-top:4px">One skill to practise, not a verdict. A single test gives a signal; the pattern becomes clear after a few tests.</div></div>
+<div class="c"><h2>Every question</h2>${Q.map((q,i)=>{const v=S.ans[i],g=ok(q,v),sa=v==null?'Not attempted':q.t=='mc'?q.o[v]:v[0]+'/'+v[1],ca=q.t=='mc'?q.o[q.a]:q.a[0]+'/'+q.a[1];
+return`<div class="q"><b>Q${i+1}</b> <span class="${g?'ok':'no'}">${g?'✓ Correct':v==null?'– Not attempted':'✗ Not correct yet'}</span><div class="m">${q.q}</div><div>Answer: ${sa}</div>${g?'':`<div>Correct: ${ca}</div><div class="m">${q.why}${q.skill?' Skill: '+q.skill+'.':''}</div>`}</div>`}).join('')}</div>
+<div class="np"><button class="b" onclick="share()">Send to parent: message + PDF</button><a class="b g" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(S.msg)}">WhatsApp message only</a><div class="m" id="sm"></div>
+<button class="b g" onclick="window.print()">Save report as PDF</button>
+<button class="b g" onclick="S.screen='home';home()">Try again with new numbers</button>
+<div class="m" style="margin-top:10px">Prototype: in the full version the result is saved to your private Sheet first, and the WhatsApp message carries a private PDF link.</div></div>`;
+window.scrollTo(0,0);save()}
+function mkpdf(){
+const d=new window.jspdf.jsPDF(),cl=t=>String(t).replace(/[^\x20-\xFF]/g,''),r=S.r;let y=16;
+const w=(t,sz,b)=>{d.setFont('helvetica',b?'bold':'normal');d.setFontSize(sz);const ls=d.splitTextToSize(cl(t),180);if(y+ls.length*sz*.45>285){d.addPage();y=16}d.text(ls,14,y);y+=ls.length*sz*.45+2};
+w('Class 9 Physics - Motion Test Report',16,1);
+w(`Student: ${S.name}    Class: ${S.cls}`,11);
+w(`Score: ${r.sc}/10    Attempted: ${r.att}    Unattempted: ${10-r.att}    Left screen: ${S.left}`,11);
+Object.entries(r.T).forEach(([k,x])=>w(`${k}: ${x[0]}/${x[1]}`,11));
+w(`Root gap: ${r.gt}`,11,1);w('Every question',13,1);
+Q.forEach((q,i)=>{const v=S.ans[i],g=ok(q,v),sa=v==null?'Not attempted':q.t=='mc'?q.o[v]:v[0]+'/'+v[1],ca=q.t=='mc'?q.o[q.a]:q.a[0]+'/'+q.a[1];
+w(`Q${i+1}  ${g?'Correct':v==null?'Not attempted':'Not correct yet'}`,11,1);w(q.q,10);w('Answer: '+sa,10);if(!g){w('Correct: '+ca,10);w(q.why+(q.skill?' Skill: '+q.skill+'.':''),10)}});
+return d}
+async function share(){
+const sm=$('sm'),n=`Motion-Test-${S.name}.pdf`;
+try{const f=new File([mkpdf().output('blob')],n,{type:'application/pdf'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:S.msg});return}
+mkpdf().save(n);sm.textContent='This browser cannot attach the PDF to WhatsApp directly, so the PDF was downloaded. Use WhatsApp message only, then attach the PDF by hand.'}
+catch(e){sm.textContent=e&&e.name=='AbortError'?'Sharing cancelled.':'Sharing is blocked in this preview. Open the page in Chrome or Safari, or use the other buttons.'}}
+async function save(){
+document.querySelector('h1').insertAdjacentHTML('afterend','<div class="m" id="sv">Saving your result…</div>');
+await send()}
+async function send(){
+const r=S.r,sv=$('sv');sv.textContent='Saving your result…';
+const answers=Q.map((q,i)=>{const v=S.ans[i];return{n:i+1,topic:q.topic,skill:q.skill,kind:q.kind,given:v==null?'(not attempted)':q.t=='mc'?q.o[v]:v[0]+'/'+v[1],correctAnswer:q.t=='mc'?q.o[q.a]:q.a[0]+'/'+q.a[1],correct:ok(q,v),q:q.q}});
+const res=await post({action:'submit',test:TEST,cls:S.cls,name:S.name,score:r.sc,attempted:r.att,total:10,left:S.left,used:r.used,answers});
+if(res.ok||res.error=='already submitted'){sv.innerHTML='<b class="ok">Saved ✓</b> Your teacher can see this result.'}
+else if(res.error=='test is not live'){sv.innerHTML='<b class="no">The test had already closed, so this result was not saved.</b> Please tell your teacher.'}
+else{sv.innerHTML='<b class="no">Could not save.</b> Check your internet. <button class="o" style="width:auto;display:inline-block;margin:6px 0 0" onclick="send()">Try saving again</button>'}}
+async function boot(){
+A.innerHTML='<div class="c">Loading the test…</div>';
+try{const r=await(await fetch(API+'?test='+TEST)).json();
+if(!r.ok)throw 0;
+S.testName=r.testName;ROSTER={};r.students.forEach(x=>{(ROSTER[x.cls]=ROSTER[x.cls]||[]).push(x.name)});
+if(r.status=='Live')home();
+else A.innerHTML=`<div class="c"><h1>📘 Class 9 Physics</h1><h2>${r.status=='Draft'?'This test has not started yet.':'This test is closed.'}</h2><div class="m">${r.status=='Draft'?'Please wait for your teacher, then check again.':'Please ask your teacher.'}</div><button class="b g" onclick="boot()">Check again</button></div>`}
+catch(e){A.innerHTML='<div class="c"><h2>Could not load the test.</h2><div class="m">Check your internet and try again.</div><button class="b" onclick="boot()">Try again</button></div>'}}
+boot();
+</script></body></html>
