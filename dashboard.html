@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teacher Dashboard</title>
+<style>
+:root{--bg:#f4f7fc;--card:#fff;--ink:#14213d;--mut:#5a6785;--pri:#2457c5;--ok:#157347;--bad:#b3261e;--wbg:#fff3d6;--warn:#8a5a00;--line:#d5deee;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1626;--card:#17213a;--ink:#e8eefc;--mut:#9fb0d3;--pri:#7ea6ff;--ok:#5fd193;--bad:#ff8d85;--wbg:#3a2f12;--warn:#ffd27a;--line:#2b3a5e}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:620px;margin:0 auto;padding:14px}.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h1{font-size:20px;margin:0 0 6px}h2{font-size:16px;margin:0 0 8px}.m{color:var(--mut);font-size:14px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--pri);background:transparent;color:var(--pri);padding:9px 12px}
+.p{background:var(--pri);color:var(--bg);font-weight:700}.g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.n{font-size:26px;font-weight:700;line-height:1}.q{padding:10px 0;border-top:1px solid var(--line)}
+.warn{background:var(--wbg);color:var(--warn);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:14px}
+.tag{font-size:12px;padding:2px 9px;border-radius:20px;border:1px solid var(--line)}.Submitted{color:var(--ok)}.Started{color:var(--pri)}.Absent{color:var(--mut)}
+.err{color:var(--bad);font-size:14px;min-height:20px}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+</style></head><body><div class="w" id="a"></div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbznUYGErlj76kmat9SzCRAIApst311_CF1yN58_6jUBFkG_T8-KF-I7SN2wN8oppi872w/exec';
+const $=id=>document.getElementById(id),A=$('a');let K='',D=null,T='T001',tm;
+try{K=localStorage.getItem('dk')||''}catch(e){}
+async function post(o){try{const r=await fetch(API,{method:'POST',body:JSON.stringify({...o,key:K})});return await r.json()}catch(e){return{ok:false,error:'network'}}}
+function login(msg){clearInterval(tm);A.innerHTML=`<div class="c"><h1>Teacher dashboard</h1><div class="m">Enter your teacher key.</div><input id="k" type="password" autocomplete="off" style="margin-top:10px"><label class="m" style="display:flex;gap:8px;margin:10px 0"><input id="rm" type="checkbox" style="width:auto">Remember on this phone</label><div class="err">${msg||''}</div><button class="p" style="width:100%" onclick="unlock()">Open</button></div>`}
+async function unlock(){K=$('k').value;const r=await post({action:'dash',test:T});if(!r.ok){K='';return login(r.error=='wrong key'?'That key is not correct.':'Could not connect. Check your internet.')}
+if($('rm').checked){try{localStorage.setItem('dk',K)}catch(e){}}D=r;draw();clearInterval(tm);tm=setInterval(load,10000)}
+async function load(){const r=await post({action:'dash',test:T});if(r.ok){D=r;draw()}else if(r.error=='wrong key')login('Key changed. Enter it again.')}
+function cur(){return D.tests.find(t=>t.id==T)||{}}
+function draw(){const t=cur(),R=D.rows,cnt=s=>R.filter(r=>r.state==s).length,fl=R.filter(r=>r.flags.length).length,cls=[...new Set(R.map(r=>r.cls))];
+A.innerHTML=`<div class="c"><h1>Teacher dashboard</h1><select id="ts" onchange="T=this.value;load()">${D.tests.map(x=>`<option value="${x.id}" ${x.id==T?'selected':''}>${x.name} (${x.id})</option>`).join('')}</select>
+<div class="row" style="margin-top:10px"><div>Status: <b>${t.status}</b></div><button onclick="load()">Refresh</button></div>
+<div class="g"><button class="p" onclick="setS('Live')" ${t.status=='Live'?'disabled':''}>Start test</button><button onclick="setS('Closed')" ${t.status!='Live'?'disabled':''}>Close test</button></div>
+<div class="g"><button onclick="remind()">Reminder for group</button><button onclick="rel()" ${t.status=='Closed'?'':'disabled'}>Release results</button></div></div>
+<div class="c"><div class="row" style="text-align:center"><div><div class="n">${cnt('Submitted')}</div><div class="m">Submitted</div></div><div><div class="n">${cnt('Started')}</div><div class="m">Writing</div></div><div><div class="n">${cnt('Not started')}</div><div class="m">Not started</div></div><div><div class="n">${cnt('Absent')}</div><div class="m">Absent</div></div></div></div>
+${D.hard.length||fl?`<div class="c"><h2>Check before release</h2>${D.hard.map(h=>`<div class="warn">Question ${h.n}: ${h.pct}% got it wrong. Check it is not a faulty question.</div>`).join('')}${fl?`<div class="warn">${fl} student(s) have flags below.</div>`:''}</div>`:''}
+${cls.map(c=>`<div class="c"><h2>Class ${c}</h2>${R.map((r,i)=>[r,i]).filter(x=>x[0].cls==c).map(([r,i])=>`<div class="q"><div class="row"><b>${r.name}</b><span class="tag ${r.state.split(' ')[0]}">${r.state}</span></div>${r.state=='Submitted'?`<div class="m">Score ${r.score}/10 · Attempted ${r.attempted} · Left screen ${r.left} · ${Math.round(r.used/6)/10} min · ${r.review}</div>`:''}${r.flags.length?`<div class="warn">⚠ ${r.flags.join(' · ')}</div>`:''}${r.state=='Not started'?`<button style="margin-top:6px" onclick="act('absent',${i})">Mark absent</button>`:''}${r.state=='Started'?`<button style="margin-top:6px" onclick="act('reset',${i})">Reset so they can restart</button>`:''}</div>`).join('')}</div>`).join('')}
+<div class="m" style="text-align:center">Updates every 10 seconds. <a href="#" onclick="try{localStorage.removeItem('dk')}catch(e){};K='';login();return false" style="color:var(--pri)">Lock</a></div>`}
+async function setS(v){if(!confirm((v=='Live'?'Start ':'Close ')+cur().name+'?'))return;const r=await post({action:'status',test:T,value:v});if(!r.ok)alert('Could not change status.');load()}
+async function act(a,i){const r=D.rows[i];if(!confirm((a=='absent'?'Mark ':'Reset ')+r.name+(a=='absent'?' absent?':' so they can start again?')))return;await post({action:a,test:T,cls:r.cls,name:r.name});load()}
+async function rel(){const n=D.rows.filter(r=>r.review=='Held for review').length;if(!n)return alert('Nothing is waiting for release.');if(!confirm('Release '+n+' result(s)? Check the flags first.'))return;await post({action:'release',test:T});load()}
+function remind(){const u=location.href.replace(/dashboard\.html.*$/,'');window.open('https://wa.me/?text='+encodeURIComponent('📘 Class 9 Physics: '+cur().name+'\n10 questions, 15 minutes. Please take it at home with a parent nearby.\nLink: '+u),'_blank')}
+K?(async()=>{const r=await post({action:'dash',test:T});if(r.ok){D=r;draw();tm=setInterval(load,10000)}else login()})():login();
+</script></body></html>
