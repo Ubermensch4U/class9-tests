@@ -38,15 +38,16 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 <div class="w" id="a"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const API='https://script.google.com/macros/s/AKfycbznUYGErlj76kmat9SzCRAIApst311_CF1yN58_6jUBFkG_T8-KF-I7SN2wN8oppi872w/exec',SECRET='blue-tiger-seven-4821',TEST='T001';
+const API='https://script.google.com/macros/s/AKfycbznUYGErlj76kmat9SzCRAIApst311_CF1yN58_6jUBFkG_T8-KF-I7SN2wN8oppi872w/exec',SECRET='CHANGE-THIS-STUDENT-PHRASE',TEST='T001';
 let ROSTER={};
 async function post(o){try{const r=await fetch(API,{method:'POST',body:JSON.stringify({...o,secret:SECRET})});return await r.json()}catch(e){return{ok:false,error:'network'}}}
 const $=id=>document.getElementById(id),A=$('a');
 let S={lock:{}},Q=[];
-const R=n=>Math.floor(Math.random()*n),pick=a=>a[R(a.length)];
+let _s=1;const rnd=()=>{_s|=0;_s=_s+0x6D2B79F5|0;let t=Math.imul(_s^_s>>>15,1|_s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const R=n=>Math.floor(rnd()*n),pick=a=>a[R(a.length)];
 const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
 const red=(n,d)=>{const g=gcd(n,d);return[n/g,d/g]};
-const shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const shuf=a=>a.map(x=>[rnd(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
 const mm=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 const norm=s=>s.toLowerCase().replace(/[^a-z]/g,'');
 function lev(a,b){const m=[...Array(a.length+1)].map((_,i)=>[i,...Array(b.length).fill(0)]);for(let j=1;j<=b.length;j++)m[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]==b[j-1]?0:1));return m[a.length][b.length]}
@@ -92,9 +93,11 @@ const r=await post({action:'start',test:TEST,cls:cl,name:nm,parent:$('pn').value
 $('gb').disabled=false;
 if(!r.ok){
 if(r.error=='parent name does not match'){S.tries=(S.tries||0)+1;if(S.tries>=3){S.lock[nm]=1;S.tries=0;er.textContent='Too many tries. Please ask your teacher.'}else er.textContent='That doesn’t match. Check the spelling and try again.'}
-else er.textContent=({'already started':'This name has already started the test. Please tell your teacher.','test is not live':'This test is not open right now.','network':'No connection. Check your internet and try again.'})[r.error]||'Something went wrong. Please tell your teacher.';
+else er.textContent=({'time over':'Your time for this test is over. Please tell your teacher.','test is not live':'This test is not open right now.','network':'No connection. Check your internet and try again.'})[r.error]||'Something went wrong. Please tell your teacher.';
 return}
-S.tries=0;S.name=nm;S.cls=cl;Q=build();S.qi=0;S.ans=[];S.left=0;S.sel=null;S.warnMsg='';S.t0=Date.now();S.end=S.t0+9e5;S.qend=S.t0+Q[0].sec*1e3;S.screen='test';test()}
+S.tries=0;S.name=nm;S.cls=cl;_s=r.seed;Q=build();S.ans=Q.map(()=>null);let last=-1;
+Object.keys(r.answers||{}).forEach(k=>{const q=Q[k],v=r.answers[k];if(q&&v!=null){const i=q.t=='mc'?q.o.indexOf(v):0;S.ans[k]=q.t=='mc'?(i<0?null:i):v;last=Math.max(last,+k)}});
+S.qi=Math.min(Q.length-1,last+1);S.left=0;S.sel=null;S.warnMsg=r.resume?'Welcome back. Your earlier answers were saved.':'';S.t0=Date.now()-(r.elapsed||0)*1000;S.end=S.t0+9e5;S.qend=Date.now()+Q[S.qi].sec*1e3;S.screen='test';test()}
 
 function test(){
 const q=Q[S.qi];
@@ -109,7 +112,7 @@ ${q.t=='mc'?q.o.map((o,i)=>`<button class="o ${S.sel===i?'s':''}" onclick="S.sel
 function next(end){
 const q=Q[S.qi];let v=null;
 if(q.t=='mc')v=S.sel;else{const n=parseInt(($('n1')||{}).value),d=parseInt(($('n2')||{}).value);if(n>=0&&d>0)v=[n,d]}
-S.ans[S.qi]=v;S.sel=null;
+S.ans[S.qi]=v;S.sel=null;post({action:'save',test:TEST,cls:S.cls,name:S.name,q:S.qi,ans:q.t=='mc'?(v==null?null:q.o[v]):v});
 if(S.qi==9||end)return finish();
 S.qi++;S.qend=Date.now()+Q[S.qi].sec*1e3;test()}
 
@@ -124,11 +127,11 @@ if(S.screen!='test')return;
 if(document.hidden)S.left++;
 else{S.warnMsg=S.left==1?'You left the test screen. This is recorded. Please stay on this page.':`You have left the screen ${S.left} times. This will show in the report.`;$('wm').innerHTML=`<div class="warn">${S.warnMsg}</div>`}});
 
-function finish(){
+function render(){
 S.screen='done';
 const used=Math.min(900,Math.round((Date.now()-S.t0)/1e3)),T={},K={};
-const att=Q.filter((q,i)=>S.ans[i]!=null).length,sc=Q.filter((q,i)=>ok(q,S.ans[i])).length;
-Q.forEach((q,i)=>{const g=ok(q,S.ans[i]);T[q.topic]=T[q.topic]||[0,0];T[q.topic][1]++;if(g)T[q.topic][0]++;if(q.skill){K[q.skill]=K[q.skill]||[0,0];K[q.skill][1]++;if(!g)K[q.skill][0]++}});
+const att=Q.filter((q,i)=>S.ans[i]!=null).length,sc=Q.filter((q,i)=>okq(q,i)).length;
+Q.forEach((q,i)=>{const g=okq(q,i);T[q.topic]=T[q.topic]||[0,0];T[q.topic][1]++;if(g)T[q.topic][0]++;if(q.skill){K[q.skill]=K[q.skill]||[0,0];K[q.skill][1]++;if(!g)K[q.skill][0]++}});
 const gap=Object.entries(K).filter(e=>e[1][0]>0).sort((x,y)=>y[1][0]/y[1][1]-x[1][0]/x[1][1])[0];
 const gt=gap?`${gap[0]} (${gap[1][0]} of ${gap[1][1]} questions missed)`:'No gap found this time 🎉';
 S.r={sc,att,gt,T,used};S.msg=`📘 Class 9 Physics: Motion Test\n${S.name} (Class ${S.cls})\nScore: ${sc}/10 · Attempted ${att} · Unattempted ${10-att}\n${Object.entries(T).map(([k,x])=>k+' '+x[0]+'/'+x[1]).join('\n')}\nRoot gap: ${gt}\nLeft screen: ${S.left} time(s)\n📄 Full report: (private PDF link goes here in the full version)`;
@@ -136,13 +139,13 @@ A.innerHTML=`<div class="c"><h1>Report: ${S.name}, Class ${S.cls}</h1><div class
 <div class="row" style="margin:14px 0"><div><div class="big">${sc}/10</div><div class="m">Score</div></div><div><div class="big">${att}</div><div class="m">Attempted</div></div><div><div class="big">${10-att}</div><div class="m">Unattempted</div></div><div><div class="big">${S.left}</div><div class="m">Left screen</div></div></div>
 <h2>Marks by topic</h2>${Object.entries(T).map(([k,x])=>`<div class="row"><span>${k}</span><b>${x[0]}/${x[1]}</b></div><div class="bar" style="margin:4px 0 10px"><i style="width:${x[0]/x[1]*100}%"></i></div>`).join('')}
 <h2>Root gap</h2><div>${gt}</div><div class="m" style="margin-top:4px">One skill to practise, not a verdict. A single test gives a signal; the pattern becomes clear after a few tests.</div></div>
-<div class="c"><h2>Every question</h2>${Q.map((q,i)=>{const v=S.ans[i],g=ok(q,v),sa=v==null?'Not attempted':q.t=='mc'?q.o[v]:v[0]+'/'+v[1],ca=q.t=='mc'?q.o[q.a]:q.a[0]+'/'+q.a[1];
+<div class="c"><h2>Every question</h2>${Q.map((q,i)=>{const v=S.ans[i],g=okq(q,i),sa=v==null?'Not attempted':q.t=='mc'?q.o[v]:v[0]+'/'+v[1],ca=q.t=='mc'?q.o[q.a]:q.a[0]+'/'+q.a[1];
 return`<div class="q"><b>Q${i+1}</b> <span class="${g?'ok':'no'}">${g?'✓ Correct':v==null?'– Not attempted':'✗ Not correct yet'}</span><div class="m">${q.q}</div><div>Answer: ${sa}</div>${g?'':`<div>Correct: ${ca}</div><div class="m">${q.why}${q.skill?' Skill: '+q.skill+'.':''}</div>`}</div>`}).join('')}</div>
 <div class="np"><button class="b" onclick="share()">Send to parent: message + PDF</button><a class="b g" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(S.msg)}">WhatsApp message only</a><div class="m" id="sm"></div>
 <button class="b g" onclick="window.print()">Save report as PDF</button>
 <button class="b g" onclick="S.screen='home';home()">Try again with new numbers</button>
 <div class="m" style="margin-top:10px">Prototype: in the full version the result is saved to your private Sheet first, and the WhatsApp message carries a private PDF link.</div></div>`;
-window.scrollTo(0,0);save()}
+window.scrollTo(0,0)}
 function mkpdf(){
 const d=new window.jspdf.jsPDF(),cl=t=>String(t).replace(/[^\x20-\xFF]/g,''),r=S.r;let y=16;
 const w=(t,sz,b)=>{d.setFont('helvetica',b?'bold':'normal');d.setFontSize(sz);const ls=d.splitTextToSize(cl(t),180);if(y+ls.length*sz*.45>285){d.addPage();y=16}d.text(ls,14,y);y+=ls.length*sz*.45+2};
@@ -160,16 +163,15 @@ try{const f=new File([mkpdf().output('blob')],n,{type:'application/pdf'});
 if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:S.msg});return}
 mkpdf().save(n);sm.textContent='This browser cannot attach the PDF to WhatsApp directly, so the PDF was downloaded. Use WhatsApp message only, then attach the PDF by hand.'}
 catch(e){sm.textContent=e&&e.name=='AbortError'?'Sharing cancelled.':'Sharing is blocked in this preview. Open the page in Chrome or Safari, or use the other buttons.'}}
-async function save(){
-document.querySelector('h1').insertAdjacentHTML('afterend','<div class="m" id="sv">Saving your result…</div>');
-await send()}
-async function send(){
-const r=S.r,sv=$('sv');sv.textContent='Saving your result…';
-const answers=Q.map((q,i)=>{const v=S.ans[i];return{n:i+1,topic:q.topic,skill:q.skill,kind:q.kind,given:v==null?'(not attempted)':q.t=='mc'?q.o[v]:v[0]+'/'+v[1],correctAnswer:q.t=='mc'?q.o[q.a]:q.a[0]+'/'+q.a[1],correct:ok(q,v),q:q.q}});
-const res=await post({action:'submit',test:TEST,cls:S.cls,name:S.name,score:r.sc,attempted:r.att,total:10,left:S.left,used:r.used,answers});
-if(res.ok||res.error=='already submitted'){sv.innerHTML='<b class="ok">Saved ✓</b> Your teacher can see this result.'}
-else if(res.error=='test is not live'){sv.innerHTML='<b class="no">The test had already closed, so this result was not saved.</b> Please tell your teacher.'}
-else{sv.innerHTML='<b class="no">Could not save.</b> Check your internet. <button class="o" style="width:auto;display:inline-block;margin:6px 0 0" onclick="send()">Try saving again</button>'}}
+const okq=(q,i)=>S.srv?!!S.srv.corr[i]:ok(q,S.ans[i]);
+async function finish(){S.screen='done';S.srv=null;await submit()}
+async function submit(){
+A.innerHTML='<div class="c"><h2>Submitting your test…</h2><div class="m">Please wait. Do not close this page.</div></div>';
+const answers=Q.map((q,i)=>{const v=S.ans[i];return v==null?null:q.t=='mc'?q.o[v]:v});
+const r=await post({action:'submit',test:TEST,cls:S.cls,name:S.name,answers,left:S.left});
+if(r.ok){S.srv=r;render();document.querySelector('h1').insertAdjacentHTML('afterend','<div class="m"><b class="ok">Saved ✓</b> Your teacher can see this result.</div>')}
+else{const m={'time over':'Time was over, so this result was not saved. Please tell your teacher.','test is not live':'The test had already closed, so this result was not saved. Please tell your teacher.','already submitted':'This test was already submitted.'}[r.error];
+A.innerHTML=`<div class="c"><h2>${m||'Could not submit.'}</h2>${m?'':'<div class="m">Check your internet, then try again. Your answers are still here.</div><button class="b" onclick="submit()">Try again</button>'}</div>`}}
 async function boot(){
 A.innerHTML='<div class="c">Loading the test…</div>';
 try{const r=await(await fetch(API+'?test='+TEST)).json();
