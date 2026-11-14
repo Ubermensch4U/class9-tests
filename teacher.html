@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teacher Dashboard</title>
+<style>
+:root{--bg:#f4f7fc;--card:#fff;--ink:#14213d;--mut:#5a6785;--pri:#2457c5;--ok:#157347;--bad:#b3261e;--wbg:#fff3d6;--warn:#8a5a00;--line:#d5deee;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1626;--card:#17213a;--ink:#e8eefc;--mut:#9fb0d3;--pri:#7ea6ff;--ok:#5fd193;--bad:#ff8d85;--wbg:#3a2f12;--warn:#ffd27a;--line:#2b3a5e}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:620px;margin:0 auto;padding:14px}.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h1{font-size:20px;margin:0 0 6px}h2{font-size:16px;margin:0 0 8px}.m{color:var(--mut);font-size:14px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--pri);background:transparent;color:var(--pri);padding:9px 12px}
+.p{background:var(--pri);color:var(--bg);font-weight:700}.g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.n{font-size:26px;font-weight:700;line-height:1}.q{padding:10px 0;border-top:1px solid var(--line)}
+.warn{background:var(--wbg);color:var(--warn);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:14px}
+.tag{font-size:12px;padding:2px 9px;border-radius:20px;border:1px solid var(--line)}.Submitted{color:var(--ok)}.Started{color:var(--pri)}.Absent{color:var(--mut)}
+.err{color:var(--bad);font-size:14px;min-height:20px}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+</style></head><body><div class="w" id="a"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const API='https://script.google.com/macros/s/AKfycbznUYGErlj76kmat9SzCRAIApst311_CF1yN58_6jUBFkG_T8-KF-I7SN2wN8oppi872w/exec';
+const $=id=>document.getElementById(id),A=$('a');let K='',D=null,T='T001',tm;
+try{K=localStorage.getItem('dk')||''}catch(e){}
+async function post(o){try{const r=await fetch(API,{method:'POST',body:JSON.stringify({...o,key:K})});return await r.json()}catch(e){return{ok:false,error:'network'}}}
+function login(msg){clearInterval(tm);A.innerHTML=`<div class="c"><h1>Teacher dashboard</h1><div class="m">Enter your teacher key.</div><input id="k" type="password" autocomplete="off" style="margin-top:10px"><label class="m" style="display:flex;gap:8px;margin:10px 0"><input id="rm" type="checkbox" style="width:auto">Remember on this phone</label><div class="err">${msg||''}</div><button class="p" style="width:100%" onclick="unlock()">Open</button></div>`}
+async function unlock(){K=$('k').value;const r=await post({action:'dash',test:T});if(!r.ok){K='';return login(r.error=='wrong key'?'That key is not correct.':'Could not connect. Check your internet.')}
+if($('rm').checked){try{localStorage.setItem('dk',K)}catch(e){}}D=r;draw();clearInterval(tm);tm=setInterval(load,10000)}
+async function load(){const r=await post({action:'dash',test:T});if(r.ok){D=r;draw()}else if(r.error=='wrong key')login('Key changed. Enter it again.')}
+function cur(){return D.tests.find(t=>t.id==T)||{}}
+function draw(){const t=cur(),R=D.rows,cnt=s=>R.filter(r=>r.state==s).length,fl=R.filter(r=>r.flags.length).length,cls=[...new Set(R.map(r=>r.cls))];
+A.innerHTML=`<div class="c"><h1>Teacher dashboard</h1><select id="ts" onchange="T=this.value;load()">${D.tests.map(x=>`<option value="${x.id}" ${x.id==T?'selected':''}>${x.name} (${x.id})</option>`).join('')}</select>
+<div class="row" style="margin-top:10px"><div>Status: <b>${t.status}</b></div><button onclick="load()">Refresh</button></div>
+<div class="g"><button class="p" onclick="setS('Live')" ${t.status=='Live'?'disabled':''}>Start test</button><button onclick="setS('Closed')" ${t.status!='Live'?'disabled':''}>Close test</button></div>
+<div class="g"><button onclick="remind()">Reminder for group</button><button onclick="rel()" ${t.status=='Closed'?'':'disabled'}>Release results</button></div><div class="g" style="grid-template-columns:1fr"><button class="p" onclick="openSend()">Send reports to parents</button></div>${t.status=='Closed'&&cnt('Started')?`<div class="g" style="grid-template-columns:1fr"><button onclick="fin()">Finalize ${cnt('Started')} unfinished test(s)</button></div>`:''}</div>
+<div class="c"><div class="row" style="text-align:center"><div><div class="n">${cnt('Submitted')}</div><div class="m">Submitted</div></div><div><div class="n">${cnt('Started')}</div><div class="m">Writing</div></div><div><div class="n">${cnt('Not started')}</div><div class="m">Not started</div></div><div><div class="n">${cnt('Absent')}</div><div class="m">Absent</div></div></div></div>
+${D.hard.length||fl?`<div class="c"><h2>Check before release</h2>${D.hard.map(h=>`<div class="warn">Question ${h.n}: ${h.pct}% got it wrong. Check it is not a faulty question.</div>`).join('')}${fl?`<div class="warn">${fl} student(s) have flags below.</div>`:''}</div>`:''}
+${cls.map(c=>`<div class="c"><h2>Class ${c}</h2>${R.map((r,i)=>[r,i]).filter(x=>x[0].cls==c).map(([r,i])=>`<div class="q"><div class="row"><b>${r.name}</b><span class="tag ${r.state.split(' ')[0]}">${r.state}</span></div>${r.state=='Submitted'?`<div class="m">Score ${r.score}/10 · Attempted ${r.attempted} · Left screen ${r.left} · ${Math.round(r.used/6)/10} min · ${r.review}</div>`:''}${r.flags.length?`<div class="warn">⚠ ${r.flags.join(' · ')}</div>`:''}${r.state=='Not started'?`<button style="margin-top:6px" onclick="act('absent',${i})">Mark absent</button>`:''}${r.state=='Started'?`<button style="margin-top:6px" onclick="act('reset',${i})">Reset so they can restart</button>`:''}</div>`).join('')}</div>`).join('')}
+<div class="m" style="text-align:center">Updates every 10 seconds. <a href="#" onclick="try{localStorage.removeItem('dk')}catch(e){};K='';login();return false" style="color:var(--pri)">Lock</a></div>`}
+async function setS(v){if(!confirm((v=='Live'?'Start ':'Close ')+cur().name+'?'))return;const r=await post({action:'status',test:T,value:v});if(!r.ok)alert('Could not change status.');load()}
+async function act(a,i){const r=D.rows[i];if(!confirm((a=='absent'?'Mark ':'Reset ')+r.name+(a=='absent'?' absent?':' so they can start again?')))return;await post({action:a,test:T,cls:r.cls,name:r.name});load()}
+async function fin(){if(!confirm('Mark the saved answers of unfinished students as their final result? Do this after closing the test.'))return;const r=await post({action:'finalize',test:T});alert(r.ok?r.count+' unfinished test(s) finalized.':'Could not finalize.');load()}
+async function rel(){const n=D.rows.filter(r=>r.review=='Held for review').length;if(!n)return alert('Nothing is waiting for release.');if(!confirm('Release '+n+' result(s)? Check the flags first.'))return;await post({action:'release',test:T});load()}
+function remind(){const u=location.href.replace(/(teacher|dashboard)\.html.*$/,'');window.open('https://wa.me/?text='+encodeURIComponent('📘 Class 9 Physics: '+cur().name+'\n10 questions, 15 minutes. Please take it at home with a parent nearby.\nLink: '+u),'_blank')}
+
+let SV=null;
+const SK=()=>'sent_'+T;
+function lsGet(){try{return JSON.parse(localStorage.getItem(SK())||'{}')}catch(e){return{}}}
+function lsSet(o){try{localStorage.setItem(SK(),JSON.stringify(o))}catch(e){}}
+async function openSend(){clearInterval(tm);A.innerHTML='<div class="c">Loading reports…</div>';const r=await post({action:'reports',test:T});if(!r.ok||!r.sent){alert('Could not load reports. The script may need a new version deployed.');return back()}SV=r;drawSend()}
+function back(){clearInterval(tm);tm=setInterval(load,10000);load()}
+function stats(x){const T2={},K={};x.answers.forEach(a=>{T2[a.topic]=T2[a.topic]||[0,0];T2[a.topic][1]++;if(a.correct)T2[a.topic][0]++;if(a.skill){K[a.skill]=K[a.skill]||[0,0];K[a.skill][1]++;if(!a.correct)K[a.skill][0]++}});
+const g=Object.entries(K).filter(e=>e[1][0]>0).sort((p,q)=>q[1][0]/q[1][1]-p[1][0]/p[1][1])[0];
+return{T2,gt:g?`${g[0]} (${g[1][0]} of ${g[1][1]} questions missed)`:'No gap found this time'}}
+function msg(x,pdf){const s=stats(x);return `📘 Class 9 Physics: ${SV.testName}\n${x.name} (Class ${x.cls})\nScore: ${x.score}/10 · Attempted ${x.attempted} · Unattempted ${10-x.attempted}\n${Object.entries(s.T2).map(([k,v])=>k+' '+v[0]+'/'+v[1]).join('\n')}\nRoot gap: ${s.gt}\nLeft screen: ${x.left} time(s)`+(pdf?'\nThe full question-by-question report is in the PDF.':'')}
+let LOGO=null;const CENTRE='';
+async function loadLogo(){if(LOGO!==null)return;LOGO=false;try{const r=await fetch('logo.png');if(!r.ok)return;const b=await r.blob(),u=await new Promise(z=>{const f=new FileReader();f.onload=()=>z(f.result);f.readAsDataURL(b)}),im=await new Promise((z,e)=>{const m=new Image();m.onload=()=>z(m);m.onerror=e;m.src=u}),k=Math.min(22/im.width,22/im.height);LOGO={d:u,f:/jpe?g/.test(b.type)?'JPEG':'PNG',w:im.width*k,h:im.height*k}}catch(e){LOGO=false}}
+const cc=p=>p>=.7?[21,115,71]:p>=.4?[154,103,0]:[179,38,30];
+function mkpdf(x){const d=new window.jspdf.jsPDF(),cl=t=>String(t).replace(/[^\x20-\xFF]/g,''),s=stats(x),col=cc(x.score/10);let y=0;
+const tc=c=>d.setTextColor(c[0],c[1],c[2]),fc=c=>d.setFillColor(c[0],c[1],c[2]);
+const w=(t,sz,b,c)=>{d.setFont('helvetica',b?'bold':'normal');d.setFontSize(sz);tc(c||[20,33,61]);const ls=d.splitTextToSize(cl(t),180);if(y+ls.length*sz*.45>280){d.addPage();y=16}d.text(ls,14,y);y+=ls.length*sz*.45+2};
+fc([36,87,197]);d.rect(0,0,210,30,'F');let tx=14;if(LOGO){d.addImage(LOGO.d,LOGO.f,10,4,LOGO.w,LOGO.h);tx=14+LOGO.w}
+d.setFont('helvetica','bold');tc([255,255,255]);d.setFontSize(16);d.text(cl(CENTRE||'Class 9 Physics'),tx,14);d.setFont('helvetica','normal');d.setFontSize(11);d.text(cl((CENTRE?'Class 9 Physics - ':'')+SV.testName+' Report'),tx,22);
+y=42;w(`Student: ${x.name}     Class: ${x.cls}     Report date: ${new Date().toLocaleDateString('en-GB')}`,11);
+y+=2;fc([236,242,253]);d.roundedRect(14,y,182,30,3,3,'F');d.setDrawColor(col[0],col[1],col[2]);d.setLineWidth(.8);d.roundedRect(14,y,182,30,3,3,'S');
+d.setFont('helvetica','bold');tc(col);d.setFontSize(30);d.text(`${x.score}/10`,20,y+19);d.setFontSize(10);tc([90,103,133]);d.text('MARKS GAINED',20,y+26);
+d.setFont('helvetica','normal');d.setFontSize(11);tc([20,33,61]);d.text(`Attempted: ${x.attempted}`,90,y+11);d.text(`Unattempted: ${10-x.attempted}`,90,y+18);d.text(`Left screen: ${x.left} time(s)`,90,y+25);
+y+=40;w('Marks by topic',13,1);
+Object.entries(s.T2).forEach(([k,v])=>{const c=cc(v[0]/v[1]);w(`${k}: ${v[0]}/${v[1]}`,11,1,c);y-=1;fc([213,222,238]);d.rect(14,y,120,3,'F');if(v[0]){fc(c);d.rect(14,y,120*v[0]/v[1],3,'F')}y+=8});
+fc([255,243,214]);d.roundedRect(14,y,182,12,2,2,'F');d.setFont('helvetica','bold');d.setFontSize(11);tc([138,90,0]);d.text(cl('Root gap: '+s.gt),18,y+8);y+=22;
+w('Every question',13,1);
+[...x.answers].sort((p,q)=>p.n-q.n).forEach(a=>{const na=a.given=='(not attempted)',st=a.correct?['Correct',[21,115,71]]:na?['Not attempted',[90,103,133]]:['Not correct yet',[179,38,30]];
+w(`Q${a.n}  ${st[0]}`,11,1,st[1]);w(a.q,10);w('Answer: '+a.given,10,0,a.correct?[21,115,71]:null);if(!a.correct){w('Correct answer: '+a.correctAnswer,10,1,[21,115,71]);if(a.why)w('How to solve: '+a.why,10,0,[20,33,61]);if(a.skill)w('Skill to practise: '+a.skill,10,0,[90,103,133])}y+=2});
+const n=d.getNumberOfPages();for(let i=1;i<=n;i++){d.setPage(i);d.setFont('helvetica','normal');d.setFontSize(8);tc([120,130,150]);d.text(cl((CENTRE||'Class 9 Physics')+' - page '+i+' of '+n),14,291)}
+return d}
+async function sendPdf(i){const x=SV.sent[i];try{await loadLogo();const n=(x.name+'-'+SV.testName).replace(/\s+/g,'-')+'.pdf',f=new File([mkpdf(x).output('blob')],n,{type:'application/pdf'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:msg(x,1)});await markSent(i)}
+else{mkpdf(x).save(n);alert('This browser cannot attach the PDF directly, so it was saved to your phone. Attach it by hand in WhatsApp, and use Message only for the text.')}}catch(e){if(e&&e.name!='AbortError')alert('Sharing failed. Try Message only.')}}
+function sendMsg(i){const x=SV.sent[i];window.open('https://wa.me/'+x.phone+'?text='+encodeURIComponent(msg(x,0)),'_blank');markSent(i)}
+async function markSent(i,v){const x=SV.sent[i];await post({action:'sent',test:T,cls:x.cls,name:x.name,value:v||'Sent'});x.status=v=='Released'?'Released':'Sent';drawSend()}
+function sendAbs(i){const x=SV.absent[i],u=location.href.replace(/(teacher|dashboard)\.html.*$/,'');const m=`📘 Class 9 Physics: ${SV.testName}\n${x.name} (Class ${x.cls}) missed today’s test. No score is given.\nMake-up link (please take it within 3 days, with a parent nearby):\n${u}`;window.open('https://wa.me/'+x.phone+'?text='+encodeURIComponent(m),'_blank');const o=lsGet();o[x.cls+'|'+x.name]=1;lsSet(o);drawSend()}
+function drawSend(){const o=lsGet(),S=SV.sent,n=S.filter(x=>x.status=='Sent').length;
+A.innerHTML=`<div class="c"><div class="row"><h1>Send reports</h1><button onclick="back()">Back</button></div><div class="m">${SV.testName} · Released ${S.length} · Sent ${n} · Left ${S.length-n}</div></div>
+${S.length?'':'<div class="c m">No released results yet. Close the test and tap Release results first.</div>'}
+${S.map((x,i)=>`<div class="c"><div class="row"><b>${x.name} · ${x.cls}</b><span>${x.score}/10</span></div>${x.phone?'':'<div class="warn">No parent number in the Roster tab.</div>'}<div class="g"><button class="p" onclick="sendPdf(${i})">📄 PDF + message</button><button onclick="sendMsg(${i})" ${x.phone?'':'disabled'}>Message only</button></div>${x.status=='Sent'?`<div class="m" style="margin-top:8px"><span class="Submitted">✓ Sent</span> · <a href="#" onclick="markSent(${i},'Released');return false" style="color:var(--pri)">Unmark</a></div>`:`<div class="m" style="margin-top:8px">○ Not sent yet</div>`}</div>`).join('')}
+${SV.absent.length?`<div class="c"><h2>Absent: make-up notes</h2>${SV.absent.map((x,i)=>`<div class="q"><div class="row"><b>${x.name} · ${x.cls}</b>${o[x.cls+'|'+x.name]?'<span class="Submitted">✓ Sent</span>':''}</div><button style="margin-top:6px" onclick="sendAbs(${i})" ${x.phone?'':'disabled'}>Make-up note</button></div>`).join('')}</div>`:''}`}
+K?(async()=>{const r=await post({action:'dash',test:T});if(r.ok){D=r;draw();tm=setInterval(load,10000)}else login()})():login();
+</script></body></html>
